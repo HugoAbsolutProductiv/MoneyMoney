@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MM">
+<title>MoneyMoney</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #080808;
+  --s1:       #111111;
+  --s2:       #1a1a1a;
+  --s3:       #242424;
+  --border:   #2c2c2c;
+  --accent:   #c8f054;
+  --accent2:  #54c8f0;
+  --text:     #f0ede6;
+  --muted:    #666;
+  --muted2:   #3a3a3a;
+  --red:      #f05454;
+  --green:    #54c87e;
+  --safe-t:   env(safe-area-inset-top,    44px);
+  --safe-b:   env(safe-area-inset-bottom, 20px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overscroll-behavior:none;-webkit-font-smoothing:antialiased}
+
+/* ── SCROLLABLE CONTENT ── */
+.page{display:none;position:fixed;inset:0;overflow-y:auto;padding-top:calc(var(--safe-t) + 16px);padding-bottom:calc(var(--safe-b) + 72px)}
+.page.active{display:block}
+
+/* ── TAB BAR ── */
+.tabbar{
+  position:fixed;bottom:0;left:0;right:0;z-index:100;
+  background:rgba(10,10,10,0.92);
+  backdrop-filter:blur(20px);
+  border-top:1px solid var(--border);
+  display:flex;align-items:center;
+  padding:8px 0 calc(var(--safe-b));
+}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 0;transition:opacity 0.15s}
+.tab-icon{font-size:22px;line-height:1}
+.tab-label{font-size:10px;font-weight:500;color:var(--muted);letter-spacing:0.03em}
+.tab.active .tab-label{color:var(--accent)}
+.tab.active .tab-icon{filter:drop-shadow(0 0 6px rgba(200,240,84,0.5))}
+
+/* ── FAB ── */
+.fab{
+  position:fixed;bottom:calc(var(--safe-b) + 62px);left:50%;transform:translateX(-50%);
+  z-index:101;
+  width:64px;height:64px;border-radius:50%;
+  background:var(--accent);border:none;
+  font-size:32px;line-height:1;color:#111;
+  box-shadow:0 4px 24px rgba(200,240,84,0.35);
+  cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;
+  display:flex;align-items:center;justify-content:center;
+}
+.fab:active{transform:translateX(-50%) scale(0.92);box-shadow:0 2px 12px rgba(200,240,84,0.2)}
+
+/* ── TYPOGRAPHY ── */
+.serif{font-family:'Fraunces',serif}
+h1.page-title{font-family:'Fraunces',serif;font-size:30px;font-weight:300;letter-spacing:-0.5px;padding:0 20px 20px}
+.section-label{font-size:11px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;padding:0 20px;margin-bottom:10px;margin-top:24px}
+
+/* ── CARDS ── */
+.card{background:var(--s1);border-radius:16px;padding:18px;border:1px solid var(--border)}
+.card-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px}
+.card-full{margin:0 16px}
+.metric-label{font-size:11px;color:var(--muted);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px}
+.metric-value{font-family:'Fraunces',serif;font-size:28px;font-weight:300;letter-spacing:-0.5px;line-height:1}
+.metric-sub{font-size:12px;color:var(--muted);margin-top:4px}
+.metric-up{color:var(--green)}
+.metric-down{color:var(--red)}
+
+/* ── MINI BARCHART ── */
+.bar-row{display:flex;align-items:flex-end;gap:4px;height:40px;margin-top:12px}
+.bar-col{flex:1;border-radius:3px 3px 0 0;transition:height 0.3s;min-height:3px}
+.bar-col.accent{background:var(--accent)}
+.bar-col.dim{background:var(--s3)}
+
+/* ── ENTRY LIST ── */
+.entry-list{padding:0 16px;display:flex;flex-direction:column;gap:8px}
+.entry{background:var(--s1);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:14px;border:1px solid var(--border)}
+.entry-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0}
+.entry-body{flex:1;min-width:0}
+.entry-name{font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.entry-meta{font-size:12px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.entry-amt{font-family:'Fraunces',serif;font-size:18px;font-weight:300;color:var(--red);flex-shrink:0}
+.entry-amt.pos{color:var(--green)}
+
+/* ── BUDGET BAR ── */
+.budget-item{background:var(--s1);border-radius:12px;padding:14px 16px;margin-bottom:8px;border:1px solid var(--border)}
+.budget-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+.budget-name{font-size:14px;font-weight:500}
+.budget-nums{font-size:12px;color:var(--muted)}
+.budget-track{height:5px;background:var(--s3);border-radius:3px;overflow:hidden}
+.budget-fill{height:100%;border-radius:3px;background:var(--accent);transition:width 0.5s}
+.budget-fill.warn{background:#f0b554}
+.budget-fill.over{background:var(--red)}
+
+/* ── DEPOT CARD ── */
+.depot-item{background:var(--s1);border-radius:12px;padding:14px 16px;margin-bottom:8px;border:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.depot-badge{width:36px;height:36px;border-radius:10px;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--muted);flex-shrink:0;letter-spacing:-0.5px}
+.depot-body{flex:1;min-width:0}
+.depot-name{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.depot-sub{font-size:12px;color:var(--muted);margin-top:1px}
+.depot-val{text-align:right;flex-shrink:0}
+.depot-eur{font-family:'Fraunces',serif;font-size:16px;font-weight:300}
+.depot-pct{font-size:11px;margin-top:1px}
+
+/* ── SHEET ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;display:none;align-items:flex-end;backdrop-filter:blur(6px)}
+.overlay.open{display:flex}
+.sheet{background:var(--s1);border-radius:22px 22px 0 0;width:100%;max-height:88dvh;overflow-y:auto;padding-bottom:calc(var(--safe-b) + 8px);animation:up 0.3s cubic-bezier(0.32,0.72,0,1)}
+@keyframes up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.sheet-handle{width:36px;height:4px;background:var(--muted2);border-radius:2px;margin:12px auto 4px}
+.sheet-head{font-family:'Fraunces',serif;font-size:22px;font-weight:300;padding:8px 20px 16px;letter-spacing:-0.3px}
+.sheet-group{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;padding:10px 20px 4px;background:var(--s1)}
+.sheet-row{padding:15px 20px;font-size:16px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:background 0.1s}
+.sheet-row:active{background:var(--s2)}
+.sheet-row.sel{color:var(--accent)}
+.sheet-check{color:var(--accent)}
+.sheet-toggle{display:flex;gap:6px;padding:12px 20px 8px}
+.stog{flex:1;padding:8px;border-radius:8px;border:none;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s}
+.stog.on{background:var(--accent);color:#111}
+.stog.off{background:var(--s2);color:var(--muted)}
+.sheet-input-wrap{padding:12px 20px}
+.sinput{width:100%;background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:13px 16px;font-family:'DM Sans',sans-serif;font-size:16px;color:var(--text);outline:none}
+.sinput:focus{border-color:var(--accent)}
+.sbtn{width:100%;background:var(--accent);border:none;border-radius:10px;padding:15px;font-family:'DM Sans',sans-serif;font-size:16px;font-weight:600;color:#111;margin-top:10px;cursor:pointer}
+
+/* ── NUMPAD ── */
+.numpad-display{padding:24px 24px 16px;position:relative;overflow:hidden}
+.numpad-display::after{content:'';position:absolute;top:-50px;right:-30px;width:140px;height:140px;background:rgba(200,240,84,0.07);border-radius:50%;pointer-events:none}
+.nd-lbl{font-size:11px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px}
+.nd-val{font-family:'Fraunces',serif;font-size:60px;font-weight:300;letter-spacing:-2px;line-height:1}
+.nd-cur{color:var(--accent);animation:blink 1s step-end infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.np-fields{padding:0 16px;display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.np-row{background:var(--s2);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer}
+.np-icon{font-size:15px;width:18px;text-align:center;flex-shrink:0}
+.np-inner{flex:1;min-width:0}
+.np-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:1px}
+.np-val{font-size:14px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.np-val.ph{color:var(--muted2)}
+.numpad{padding:0 12px;display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:10px}
+.nk{background:var(--s2);border:none;border-radius:11px;height:58px;font-family:'DM Sans',sans-serif;font-size:24px;font-weight:300;color:var(--text);cursor:pointer;transition:background 0.08s,transform 0.07s;display:flex;align-items:center;justify-content:center}
+.nk:active{background:var(--s3);transform:scale(0.94)}
+.nk.del{font-size:18px;color:var(--muted)}
+.np-save{margin:0 12px;width:calc(100% - 24px);background:var(--accent);border:none;border-radius:13px;height:54px;font-family:'DM Sans',sans-serif;font-size:16px;font-weight:600;color:#111;cursor:pointer;transition:transform 0.1s}
+.np-save:active{transform:scale(0.97)}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:calc(var(--safe-b) + 84px);left:50%;transform:translateX(-50%) translateY(10px);background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:10px 20px;font-size:14px;opacity:0;transition:all 0.25s;pointer-events:none;white-space:nowrap;z-index:500}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── VJ BADGE ── */
+.vj{display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:3px 8px;border-radius:6px;margin-top:6px}
+.vj.up{background:rgba(84,200,126,0.12);color:var(--green)}
+.vj.down{background:rgba(240,84,84,0.12);color:var(--red)}
+
+/* ── CHART CANVAS ── */
+.chart-wrap{padding:0 16px;margin-bottom:8px}
+canvas{width:100%;border-radius:12px;background:var(--s1)}
+
+/* ── SETTINGS ── */
+.set-row{display:flex;align-items:center;justify-content:space-between;padding:15px 20px;border-bottom:1px solid var(--border);font-size:15px}
+.set-row:last-child{border-bottom:none}
+.set-row span{color:var(--muted);font-size:13px}
+.set-btn{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:var(--accent);cursor:pointer}
+.set-danger{color:var(--red)}
+</style>
+</head>
+<body>
+
+<!-- ══ PAGE: HOME ══ -->
+<div class="page active" id="page-home">
+  <h1 class="page-title serif">Guten Morgen,<br>Claus 👋</h1>
+
+  <div class="section-label">Dieser Monat</div>
+  <div class="card-grid">
+    <div class="card">
+      <div class="metric-label">Ausgaben</div>
+      <div class="metric-value" id="h-ausgaben">—</div>
+      <div class="vj down" id="h-ausgaben-vj" style="display:none"></div>
+    </div>
+    <div class="card">
+      <div class="metric-label">Bargeld</div>
+      <div class="metric-value" id="h-bargeld">—</div>
+      <div class="metric-sub" id="h-bargeld-n">0 Einträge</div>
+    </div>
+  </div>
+
+  <div class="section-label" style="margin-top:20px">Gesamtvermögen</div>
+  <div class="card-full">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="metric-label">Aktuell</div>
+          <div class="metric-value" id="h-vermoegen">155.660 €</div>
+        </div>
+        <div style="text-align:right">
+          <div class="metric-label">Vorjahr</div>
+          <div style="font-family:'Fraunces',serif;font-size:18px;font-weight:300;color:var(--muted)" id="h-vermoegen-vj">—</div>
+        </div>
+      </div>
+      <div class="bar-row" id="h-vermoegen-bars"></div>
+    </div>
+  </div>
+
+  <div class="section-label" style="margin-top:20px">Zuletzt erfasst</div>
+  <div class="entry-list" id="h-recent"></div>
+  <div style="height:10px"></div>
+</div>
+
+<!-- ══ PAGE: AUSGABEN ══ -->
+<div class="page" id="page-ausgaben">
+  <h1 class="page-title serif">Ausgaben</h1>
+
+  <!-- Monatsübersicht -->
+  <div class="section-label">Monatsverlauf</div>
+  <div class="chart-wrap">
+    <canvas id="chart-monat" height="160"></canvas>
+  </div>
+
+  <!-- Budget -->
+  <div class="section-label">Budget</div>
+  <div style="padding:0 16px" id="budget-list"></div>
+
+  <!-- Kategorien -->
+  <div class="section-label">Top Kategorien</div>
+  <div style="padding:0 16px" id="kat-list"></div>
+
+  <!-- Vorjahresvergleich -->
+  <div class="section-label">Vorjahresvergleich</div>
+  <div class="card-grid" style="margin-bottom:8px">
+    <div class="card">
+      <div class="metric-label">2026</div>
+      <div class="metric-value" id="vj-2026">—</div>
+    </div>
+    <div class="card">
+      <div class="metric-label">2025</div>
+      <div class="metric-value" id="vj-2025" style="color:var(--muted)">—</div>
+    </div>
+  </div>
+  <div style="height:10px"></div>
+</div>
+
+<!-- ══ PAGE: VERMÖGEN ══ -->
+<div class="page" id="page-vermoegen">
+  <h1 class="page-title serif">Vermögen</h1>
+
+  <div class="card-grid">
+    <div class="card">
+      <div class="metric-label">Gesamt</div>
+      <div class="metric-value">155.660 €</div>
+      <div class="vj up">↑ +12,3 % gg. VJ</div>
+    </div>
+    <div class="card">
+      <div class="metric-label">Ohne Aktien</div>
+      <div class="metric-value">7.316 €</div>
+      <div class="metric-sub">Liquid</div>
+    </div>
+  </div>
+
+  <!-- Depots -->
+  <div class="section-label" style="margin-top:20px">Depots</div>
+  <div style="padding:0 16px">
+    <div class="depot-item">
+      <div class="depot-badge">CB</div>
+      <div class="depot-body"><div class="depot-name">Consorsbank</div><div class="depot-sub">DWS · Oil&Gas · Gold · AI</div></div>
+      <div class="depot-val"><div class="depot-eur">37.082 €</div><div class="depot-pct metric-up">↑ aktiv</div></div>
+    </div>
+    <div class="depot-item">
+      <div class="depot-badge">FN</div>
+      <div class="depot-body"><div class="depot-name">Finanzen.net Zero</div><div class="depot-sub">BIT · MSCI · L&G · Amundi …</div></div>
+      <div class="depot-val"><div class="depot-eur">83.296 €</div><div class="depot-pct metric-up">↑ aktiv</div></div>
+    </div>
+    <div class="depot-item">
+      <div class="depot-badge">TR</div>
+      <div class="depot-body"><div class="depot-name">Trade Republic</div><div class="depot-sub">Allianz · Apple · BMW · BYD …</div></div>
+      <div class="depot-val"><div class="depot-eur">27.446 €</div><div class="depot-pct metric-up">↑ aktiv</div></div>
+    </div>
+    <div class="depot-item">
+      <div class="depot-badge">OV</div>
+      <div class="depot-body"><div class="depot-name">Onvista</div><div class="depot-sub">Gazprom · SOLDDD</div></div>
+      <div class="depot-val"><div class="depot-eur">520 €</div><div class="depot-pct metric-down">⚠ eingefroren</div></div>
+    </div>
+  </div>
+
+  <!-- Investitionen Verlauf -->
+  <div class="section-label" style="margin-top:20px">Verlauf Gesamtvermögen</div>
+  <div class="chart-wrap">
+    <canvas id="chart-vermoegen" height="160"></canvas>
+  </div>
+
+  <div style="height:10px"></div>
+</div>
+
+<!-- ══ PAGE: MEHR ══ -->
+<div class="page" id="page-mehr">
+  <h1 class="page-title serif">Mehr</h1>
+
+  <div class="section-label">Bargeld-Einträge</div>
+  <div class="entry-list" id="mehr-list"></div>
+
+  <div class="section-label" style="margin-top:20px">MoneyMoney CSV</div>
+  <div class="card-full">
+    <div class="card" style="padding:0">
+      <div class="set-row">
+        MoneyMoney CSV laden
+        <label style="background:var(--accent);border:none;border-radius:8px;padding:6px 14px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:#111;cursor:pointer">
+          ↑ Laden
+          <input type="file" accept=".csv" style="display:none" onchange="loadMMCSV(this)">
+        </label>
+      </div>
+      <div class="set-row">Letzte Aktualisierung <span id="csv-datum">—</span></div>
+      <div class="set-row">Buchungen gesamt <span id="csv-count">—</span></div>
+    </div>
+  </div>
+
+  <div class="section-label" style="margin-top:20px">Einstellungen</div>
+  <div class="card-full">
+    <div class="card" style="padding:0">
+      <div class="set-row">Bargeld CSV Export <button class="set-btn" onclick="exportCSV()">↓ Export</button></div>
+      <div class="set-row">Bargeld Einträge <span id="set-count">0</span></div>
+      <div class="set-row set-danger" onclick="clearAll()" style="cursor:pointer">Alle Bargeld-Einträge löschen <span>›</span></div>
+    </div>
+  </div>
+  <div style="height:10px"></div>
+</div>
+
+<!-- ══ TAB BAR ══ -->
+<div class="tabbar">
+  <div class="tab active" id="tab-home" onclick="showTab('home')">
+    <div class="tab-icon">🏠</div>
+    <div class="tab-label">Home</div>
+  </div>
+  <div class="tab" id="tab-ausgaben" onclick="showTab('ausgaben')">
+    <div class="tab-icon">💸</div>
+    <div class="tab-label">Ausgaben</div>
+  </div>
+  <div style="width:72px;flex-shrink:0"></div><!-- FAB placeholder -->
+  <div class="tab" id="tab-vermoegen" onclick="showTab('vermoegen')">
+    <div class="tab-icon">📈</div>
+    <div class="tab-label">Vermögen</div>
+  </div>
+  <div class="tab" id="tab-mehr" onclick="showTab('mehr')">
+    <div class="tab-icon">⚙️</div>
+    <div class="tab-label">Mehr</div>
+  </div>
+</div>
+
+<!-- ══ FAB ══ -->
+<button class="fab" onclick="openNewEntry()">+</button>
+
+<!-- ══ SHEET: NEUE AUSGABE ══ -->
+<div class="overlay" id="overlay-new" onclick="closeNew()">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">Bargeld erfassen</div>
+    <div class="numpad-display">
+      <div class="nd-lbl">Betrag</div>
+      <div class="nd-val" id="nd-val">0,00 €<span class="nd-cur">|</span></div>
+    </div>
+    <div class="np-fields">
+      <div class="np-row" onclick="openSub('kategorie')">
+        <span class="np-icon">🏷</span>
+        <div class="np-inner"><div class="np-lbl">Kategorie</div><div class="np-val ph" id="np-kat">Wählen …</div></div>
+        <span style="color:var(--muted2);font-size:12px">›</span>
+      </div>
+      <div class="np-row" onclick="openSub('empfaenger')">
+        <span class="np-icon">👤</span>
+        <div class="np-inner"><div class="np-lbl">Empfänger</div><div class="np-val ph" id="np-emp">Eingeben …</div></div>
+        <span style="color:var(--muted2);font-size:12px">›</span>
+      </div>
+      <div class="np-row" onclick="openSub('notiz')">
+        <span class="np-icon">📝</span>
+        <div class="np-inner"><div class="np-lbl">Notiz</div><div class="np-val ph" id="np-not">Optional …</div></div>
+        <span style="color:var(--muted2);font-size:12px">›</span>
+      </div>
+    </div>
+    <div class="numpad">
+      <button class="nk" onclick="nk('1')">1</button><button class="nk" onclick="nk('2')">2</button><button class="nk" onclick="nk('3')">3</button>
+      <button class="nk" onclick="nk('4')">4</button><button class="nk" onclick="nk('5')">5</button><button class="nk" onclick="nk('6')">6</button>
+      <button class="nk" onclick="nk('7')">7</button><button class="nk" onclick="nk('8')">8</button><button class="nk" onclick="nk('9')">9</button>
+      <button class="nk" onclick="nk(',)')">,</button><button class="nk" onclick="nk('0')">0</button><button class="nk del" onclick="nd()">⌫</button>
+    </div>
+    <button class="np-save" onclick="saveEntry()">Speichern</button>
+  </div>
+</div>
+
+<!-- ══ SHEET: KATEGORIE ══ -->
+<div class="overlay" id="overlay-kategorie" onclick="closeSub('kategorie')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">Kategorie</div>
+    <div class="sheet-toggle">
+      <button class="stog on" id="stog-b" onclick="setKatMode('b')">Bargeld</button>
+      <button class="stog off" id="stog-a" onclick="setKatMode('a')">Alle</button>
+    </div>
+    <div class="sheet-input-wrap" style="padding:8px 16px 4px">
+      <input class="sinput" id="kat-search" type="text" placeholder="🔍  Suche… z.B. Ges" autocomplete="off" oninput="renderKatSheet()" style="font-size:15px">
+    </div>
+    <div id="kat-sheet-items"></div>
+  </div>
+</div>
+
+<!-- ══ SHEET: EMPFÄNGER ══ -->
+<div class="overlay" id="overlay-empfaenger" onclick="closeSub('empfaenger')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">Empfänger</div>
+    <div class="sheet-input-wrap">
+      <input class="sinput" id="inp-emp" type="text" placeholder="z.B. Theologos, REWE …" autocomplete="off">
+      <button class="sbtn" onclick="confirmField('emp')">Übernehmen</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SHEET: NOTIZ ══ -->
+<div class="overlay" id="overlay-notiz" onclick="closeSub('notiz')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">Notiz</div>
+    <div class="sheet-input-wrap">
+      <input class="sinput" id="inp-not" type="text" placeholder="z.B. Gyros und Getränke …" autocomplete="off">
+      <button class="sbtn" onclick="confirmField('not')">Übernehmen</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══ DATA ══════════════════════════════════════════════
+
+const KAT_B = [
+  ['Einkauf',[
+    'Ausgaben - Einkauf - Bekleidung','Ausgaben - Einkauf - Drogerie',
+    'Ausgaben - Einkauf - Frisör','Ausgaben - Einkauf - Geschenke',
+    'Ausgaben - Einkauf - Gesundheit','Ausgaben - Einkauf - Hausrat',
+    'Ausgaben - Einkauf - Kantine','Ausgaben - Einkauf - Lebensmittel',
+    'Ausgaben - Einkauf - Porto','Ausgaben - Einkauf - Software','Ausgaben - Einkauf - Technik',
+  ]],
+  ['Freizeit',[
+    'Ausgaben - Freizeit - Ausflüge','Ausgaben - Freizeit - Bar / Club',
+    'Ausgaben - Freizeit - Feste','Ausgaben - Freizeit - Kino',
+    'Ausgaben - Freizeit - Konzerte','Ausgaben - Freizeit - Restaurant',
+    'Ausgaben - Freizeit - Sport','Ausgaben - Freizeit - Tischtennis',
+  ]],
+  ['Mobilität',[
+    'Ausgaben - Mobilität - Anschaffung/Verkauf','Ausgaben - Mobilität - Autowäsche',
+    'Ausgaben - Mobilität - Fahrrad','Ausgaben - Mobilität - Kraftstoffe',
+    'Ausgaben - Mobilität - Taxi','Ausgaben - Mobilität - Wartung',
+    'Ausgaben - Mobilität - sonstige Mobilitätskosten','Ausgaben - Mobilität - Öffentliche Verkehrsmittel',
+  ]],
+  ['Haushalt',['Ausgaben - Haushalt - Haushalt sonstige (Müll, etc.)','Ausgaben - Haushalt - Putzfrau']],
+  ['Urlaub',[
+    'Ausgaben - Urlaub - Ausflüge','Ausgaben - Urlaub - Essen & Trinken',
+    'Ausgaben - Urlaub - Mobilität','Ausgaben - Urlaub - Reiseausgaben sonst.',
+    'Ausgaben - Urlaub - Unterkunft',
+  ]],
+  ['Sonstige',['Ausgaben - Ausgaben sonstige - Ausgaben sonstige','Ausgaben - Emily - Emily']],
+  ['Einnahmen',[
+    'Einnahmen - Sonstige Einnahmen - Geschenke',
+    'Einnahmen - Sonstige Einnahmen - Ebay Kleinanzeigen etc.',
+    'Einnahmen - Sonstige Einnahmen - Sonstige',
+  ]],
+];
+
+const KAT_A = [
+  ...KAT_B,
+  ['Streaming/Abo',['Ausgaben - Einkauf - AI','Ausgaben - Einkauf - Streaming/Cloud/Onlinedienste','Ausgaben - Einkauf - Telefon','Ausgaben - Einkauf - Reinigung','Ausgaben - Einkauf - Spielwaren']],
+  ['Versicherungen',[
+    'Ausgaben - Versicherungen - Berufsunfähigkeit','Ausgaben - Versicherungen - Direktversicherung',
+    'Ausgaben - Versicherungen - Rechtschutz','Ausgaben - Versicherungen - Reisekrankenversicherung',
+    'Ausgaben - Versicherungen - Risikolebensversicherung','Ausgaben - Versicherungen - Zahnzusatzversicherung',
+  ]],
+  ['Steuern',[
+    'Ausgaben - Steuern + Sozialabgaben - Lohnsteuer','Ausgaben - Steuern + Sozialabgaben - Krankenversicherung',
+    'Ausgaben - Steuern + Sozialabgaben - Rentenversicherung','Ausgaben - Steuern + Sozialabgaben - Pflegeversicherung',
+    'Ausgaben - Steuern + Sozialabgaben - Arbeitslosenversicherung','Ausgaben - Steuern + Sozialabgaben - Solidaritätszuschlag',
+  ]],
+  ['Einnahmen Job',[
+    'Einnahmen - Job - Gehalt','Einnahmen - Job - Bonus','Einnahmen - Job - Weihnachtsgeld',
+    'Einnahmen - Job - Urlaubsgeld','Einnahmen - Job - Spesen','Einnahmen - Job - Fahrtkosten',
+  ]],
+  ['Umbuchungen',[
+    'Umbuchungen - Umbuchungen - Umbuchung','Umbuchungen - Umbuchungen - Außenstände',
+    'Umbuchungen - Umbuchungen - Reisekosten',
+  ]],
+];
+
+// Emoji-Map für alle Kategorie-Endbezeichnungen
+const KAT_EMOJI = {
+  'Bekleidung':'👕','Drogerie':'🧴','Frisör':'💈','Geschenke':'🎁',
+  'Gesundheit':'💊','Hausrat':'🛋','Kantine':'🍽','Lebensmittel':'🛒',
+  'Porto':'📦','Software':'💻','Technik':'📱',
+  'Ausflüge':'🗺','Bar / Club':'🍸','Feste':'🎉','Kino':'🎬',
+  'Konzerte':'🎵','Restaurant':'🍴','Sport':'⚽','Tischtennis':'🏓',
+  'Anschaffung/Verkauf':'🚗','Autowäsche':'🪣','Fahrrad':'🚲',
+  'Kraftstoffe':'⛽','Taxi':'🚕','Wartung':'🔧',
+  'sonstige Mobilitätskosten':'🚦','Öffentliche Verkehrsmittel':'🚌',
+  'Haushalt sonstige (Müll, etc.)':'🗑','Putzfrau':'🧹',
+  'Essen & Trinken':'🍕','Mobilität':'✈️','Reiseausgaben sonst.':'🧳','Unterkunft':'🏨',
+  'Ausgaben sonstige':'💳','Emily':'👧',
+  'Geschenke (Einnahmen)':'🎀','Ebay Kleinanzeigen etc.':'💰','Sonstige':'📋',
+  'AI':'🤖','Streaming/Cloud/Onlinedienste':'📺','Telefon':'📞',
+  'Reinigung':'🫧','Spielwaren':'🧸',
+  'Berufsunfähigkeit':'🛡','Direktversicherung':'🏦','Rechtschutz':'⚖️',
+  'Reisekrankenversicherung':'🏥','Risikolebensversicherung':'❤️','Zahnzusatzversicherung':'🦷',
+  'Lohnsteuer':'📊','Krankenversicherung':'🏥','Rentenversicherung':'👴',
+  'Pflegeversicherung':'🤝','Arbeitslosenversicherung':'📋','Solidaritätszuschlag':'🇩🇪',
+  'Gehalt':'💼','Bonus':'🏆','Weihnachtsgeld':'🎄','Urlaubsgeld':'☀️',
+  'Spesen':'🧾','Fahrtkosten':'🚄',
+  'Umbuchung':'🔄','Außenstände':'⏳','Reisekosten':'✈️',
+};
+function katEmoji(k){ return KAT_EMOJI[k]||KAT_EMOJI[k.replace(/\s*\(.*\)/,'')]||'•'; }
+
+// Budget-Gruppen (Kategorien-Listen; Limits werden dynamisch aus 12-Monats-Schnitt berechnet)
+const BUDGET_GROUPS = [
+  { name:'Restaurant & Bar', icon:'🍴', kat:['Ausgaben - Freizeit - Restaurant','Ausgaben - Freizeit - Bar / Club'] },
+  { name:'Lebensmittel & Drogerie', icon:'🛒', kat:['Ausgaben - Einkauf - Lebensmittel','Ausgaben - Einkauf - Drogerie'] },
+  { name:'Mobilität', icon:'🚗', kat:['Ausgaben - Mobilität - Kraftstoffe','Ausgaben - Mobilität - Öffentliche Verkehrsmittel','Ausgaben - Mobilität - Taxi','Ausgaben - Mobilität - Autowäsche'] },
+  { name:'Freizeit', icon:'🎉', kat:['Ausgaben - Freizeit - Ausflüge','Ausgaben - Freizeit - Feste','Ausgaben - Freizeit - Kino','Ausgaben - Freizeit - Konzerte','Ausgaben - Freizeit - Sport','Ausgaben - Freizeit - Tischtennis'] },
+  { name:'Putzfrau', icon:'🧹', kat:['Ausgaben - Haushalt - Putzfrau'] },
+  { name:'Gesundheit', icon:'💊', kat:['Ausgaben - Einkauf - Gesundheit'] },
+  { name:'Bekleidung', icon:'👕', kat:['Ausgaben - Einkauf - Bekleidung'] },
+];
+
+// Berechnet Monats-Durchschnitt der letzten 12 Monate für eine Kategorienliste
+function calcAvgLimit(kat12) {
+  const now = new Date();
+  const pad = n=>String(n).padStart(2,'0');
+  let total = 0, monthsWithData = 0;
+  for(let i=1;i<=12;i++){
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    const m = `${d.getFullYear()}-${pad(d.getMonth()+1)}`;
+    const sum = entries.filter(e=>e.monat===m && kat12.includes(e.kategorie)).reduce((s,e)=>s+e.betrag,0);
+    if(sum>0){ total+=sum; monthsWithData++; }
+  }
+  if(monthsWithData===0) return null; // kein historischer Wert
+  return Math.round(total/monthsWithData);
+}
+
+// ══ STATE ══════════════════════════════════════════════
+
+let entries = JSON.parse(localStorage.getItem('mm_entries')||'[]');
+
+// ══ MONEYMONEY CSV STATE ══════════════════════════════
+let mmData = []; // alle Buchungen aus MoneyMoney CSV
+
+function loadMMCSV(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const text = e.target.result;
+    parseMMCSV(text);
+    localStorage.setItem('mm_csv_raw', text);
+    localStorage.setItem('mm_csv_datum', file.name);
+    showToast('✓ CSV geladen: ' + mmData.length + ' Buchungen');
+    updateCSVInfo();
+    renderHome();
+    if(document.getElementById('page-ausgaben').classList.contains('active')) renderAusgaben();
+  };
+  reader.readAsText(file, 'utf-8');
+}
+
+function parseMMCSV(text) {
+  mmData = [];
+  const lines = text.replace(/\r/g,'').split('\n');
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split(';');
+    if (cols.length < 8) continue;
+    const datum = cols[0].trim();
+    const kat = cols[2].trim();
+    const name = cols[3].trim();
+    const zweck = cols[4].trim();
+    const betragStr = cols[7].trim();
+    if (!datum || !betragStr) continue;
+    const betrag = parseFloat(betragStr.replace(/\./g,'').replace(',','.'));
+    if (isNaN(betrag)) continue;
+    // Datum: DD.MM.YYYY → YYYY-MM
+    const parts = datum.split('.');
+    if (parts.length < 3) continue;
+    const monat = parts[2] + '-' + parts[1].padStart(2,'0');
+    const jahr = parseInt(parts[2]);
+    mmData.push({ datum, monat, jahr, kategorie: kat, name, zweck, betrag });
+  }
+}
+
+function istAusgabe(r) {
+  const k = r.kategorie;
+  if (!k.startsWith('Ausgaben')) return false;
+  if (k.includes('Steuern')) return false;
+  if (k.includes('Versicherungen')) return false;
+  return true;
+}
+
+function mmMonat(m) {
+  return mmData.filter(r => r.monat === m);
+}
+
+function updateCSVInfo() {
+  const datum = localStorage.getItem('mm_csv_datum') || '—';
+  document.getElementById('csv-datum').textContent = datum;
+  document.getElementById('csv-count').textContent = mmData.length > 0 ? mmData.length.toLocaleString('de-DE') : '—';
+}
+
+// CSV aus localStorage laden falls vorhanden
+const savedCSV = localStorage.getItem('mm_csv_raw');
+if (savedCSV) { parseMMCSV(savedCSV); }
+let amtRaw = '0';
+let selKat = '', selEmp = '', selNot = '';
+let katMode = 'b';
+
+// ══ TABS ══════════════════════════════════════════════
+
+function showTab(name) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name==='home') renderHome();
+  if(name==='ausgaben') renderAusgaben();
+  if(name==='mehr') renderMehr();
+}
+
+// ══ NUMPAD ══════════════════════════════════════════════
+
+function openNewEntry() {
+  amtRaw='0'; selKat=''; selEmp=''; selNot='';
+  renderNd(); setNp('kat','Wählen …',true); setNp('emp','Eingeben …',true); setNp('not','Optional …',true);
+  document.getElementById('overlay-new').classList.add('open');
+}
+function closeNew() { document.getElementById('overlay-new').classList.remove('open'); }
+
+function nk(v) {
+  if(v===','){if(amtRaw.includes(','))return;amtRaw=amtRaw==='0'?'0,':amtRaw+',';}
+  else{const p=amtRaw.split(',');if(p.length>1&&p[1].length>=2)return;amtRaw=amtRaw==='0'&&v!==','?v:amtRaw+v;}
+  renderNd();
+}
+function nd(){amtRaw=amtRaw.length<=1?'0':amtRaw.slice(0,-1);renderNd();}
+function renderNd(){document.getElementById('nd-val').innerHTML=amtRaw+' €<span class="nd-cur">|</span>';}
+function getAmt(){return parseFloat(amtRaw.replace(',','.'))||0;}
+
+function setNp(id,val,ph){
+  const el=document.getElementById('np-'+id);
+  el.textContent=val; el.classList.toggle('ph',ph);
+}
+
+// ══ SUB-SHEETS ══════════════════════════════════════════
+
+function openSub(name) {
+  if(name==='kategorie'){const s=document.getElementById('kat-search');if(s)s.value='';setTimeout(()=>s&&s.focus(),150);renderKatSheet();}
+  if(name==='empfaenger'){document.getElementById('inp-emp').value=selEmp;setTimeout(()=>document.getElementById('inp-emp').focus(),120);}
+  if(name==='notiz'){document.getElementById('inp-not').value=selNot;setTimeout(()=>document.getElementById('inp-not').focus(),120);}
+  document.getElementById('overlay-'+name).classList.add('open');
+}
+function closeSub(name){document.getElementById('overlay-'+name).classList.remove('open');}
+
+function renderKatSheet() {
+  const list = katMode==='b'?KAT_B:KAT_A;
+  const query = (document.getElementById('kat-search')||{value:''}).value.trim().toLowerCase();
+  document.getElementById('stog-b').className='stog '+(katMode==='b'?'on':'off');
+  document.getElementById('stog-a').className='stog '+(katMode==='a'?'on':'off');
+  let html = '';
+  list.forEach(([g,items])=>{
+    const filtered = query ? items.filter(k=>k.split(' - ').pop().toLowerCase().includes(query)) : items;
+    if(!filtered.length) return;
+    html += `<div class="sheet-group">${g}</div>`;
+    filtered.forEach(k=>{
+      const label = k.split(' - ').pop();
+      const ico = katEmoji(label);
+      const hi = query ? label.replace(new RegExp('('+query.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')', 'gi'), '<mark style="background:rgba(200,240,84,0.22);border-radius:2px;color:var(--accent)">$1</mark>') : label;
+      html += '<div class="sheet-row '+(selKat===k?'sel':'')+'" onclick="pickKat(''+k.replace(/'/g,"\\'")+'')"><span style="display:flex;align-items:center;gap:10px"><span style="font-size:18px;width:26px;text-align:center">'+ico+'</span><span>'+hi+'</span></span>'+(selKat===k?'<span class="sheet-check">✓</span>':'')+'</div>';
+    });
+  });
+  if(!html) html='<div style="padding:24px;color:var(--muted);font-size:14px;text-align:center">Keine Kategorie gefunden</div>';
+  document.getElementById('kat-sheet-items').innerHTML = html;
+}
+function setKatMode(m){katMode=m;renderKatSheet();}
+function pickKat(k){selKat=k;const lbl=k.split(' - ').pop();setNp('kat',katEmoji(lbl)+' '+lbl,false);closeSub('kategorie');}
+
+function confirmField(id){
+  const val=document.getElementById('inp-'+id).value.trim();
+  if(id==='emp'){selEmp=val;setNp('emp',val||'Eingeben …',!val);}
+  if(id==='not'){selNot=val;setNp('not',val||'Optional …',!val);}
+  closeSub(id==='emp'?'empfaenger':'notiz');
+}
+document.getElementById('inp-emp').addEventListener('keydown',e=>{if(e.key==='Enter')confirmField('emp');});
+document.getElementById('inp-not').addEventListener('keydown',e=>{if(e.key==='Enter')confirmField('not');});
+
+// ══ SAVE ══════════════════════════════════════════════
+
+function saveEntry(){
+  const amt=getAmt();
+  if(!amt){showToast('Betrag eingeben');return;}
+  if(!selKat){showToast('Kategorie wählen');return;}
+  const now=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  entries.unshift({
+    id:Date.now(),
+    datum:`${pad(now.getDate())}.${pad(now.getMonth()+1)}.${now.getFullYear()}`,
+    monat:`${now.getFullYear()}-${pad(now.getMonth()+1)}`,
+    jahr:now.getFullYear(),
+    kategorie:selKat, empfaenger:selEmp, notiz:selNot, betrag:amt,
+  });
+  localStorage.setItem('mm_entries',JSON.stringify(entries));
+  closeNew(); showToast('✓ Gespeichert');
+  renderHome();
+}
+
+// ══ RENDER HOME ══════════════════════════════════════
+
+function renderHome(){
+  const now=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  const thisMonth=`${now.getFullYear()}-${pad(now.getMonth()+1)}`;
+  const lastMonth=now.getMonth()===0
+    ? `${now.getFullYear()-1}-12`
+    : `${now.getFullYear()}-${pad(now.getMonth())}`;
+
+  // Ausgaben aus MoneyMoney CSV
+  const mmDiesMon = mmData.filter(r=>r.monat===thisMonth && istAusgabe(r));
+  const mmLetzMon = mmData.filter(r=>r.monat===lastMonth && istAusgabe(r));
+  const mmAusgaben = mmDiesMon.reduce((s,r)=>s+Math.abs(r.betrag),0);
+  const mmAusgabenVJ = mmLetzMon.reduce((s,r)=>s+Math.abs(r.betrag),0);
+
+  // Bargeld-Einträge
+  const mEntries=entries.filter(e=>e.monat===thisMonth);
+  const bargeld=mEntries.reduce((s,e)=>s+e.betrag,0);
+
+  // Ausgaben-Anzeige
+  const ausgabenEl = document.getElementById('h-ausgaben');
+  const vjEl = document.getElementById('h-ausgaben-vj');
+  if (mmAusgaben > 0) {
+    ausgabenEl.textContent = fmt(mmAusgaben)+' €';
+    if (mmAusgabenVJ > 0) {
+      const diff = mmAusgaben - mmAusgabenVJ;
+      const pct = ((diff/mmAusgabenVJ)*100).toFixed(0);
+      vjEl.style.display='inline-flex';
+      vjEl.className='vj '+(diff>0?'down':'up');
+      vjEl.textContent=(diff>0?'↑ +':'↓ ')+Math.abs(pct)+'% gg. Vormonat';
+    }
+  } else {
+    ausgabenEl.textContent='— €';
+    vjEl.style.display='none';
+  }
+
+  document.getElementById('h-bargeld').textContent=bargeld>0?fmt(bargeld)+' €':'— €';
+  document.getElementById('h-bargeld-n').textContent=mEntries.length+' Bargeld-Einträge';
+
+  // Gesamtvermögen — Einnahmen minus Ausgaben kumuliert (vereinfacht)
+  const vermEl = document.getElementById('h-vermoegen');
+  const vjVermEl = document.getElementById('h-vermoegen-vj');
+  if (mmData.length > 0) {
+    // Letzte 12 Monate für Balken
+    const months12=[];
+    for(let i=11;i>=0;i--){
+      const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+      months12.push(`${d.getFullYear()}-${pad(d.getMonth()+1)}`);
+    }
+    const monatsSummen = months12.map(m=>{
+      const aus = mmData.filter(r=>r.monat===m && istAusgabe(r)).reduce((s,r)=>s+Math.abs(r.betrag),0);
+      const ein = mmData.filter(r=>r.monat===m && r.kategorie.startsWith('Einnahmen - Job - Gehalt')).reduce((s,r)=>s+r.betrag,0);
+      return ein - aus;
+    });
+    const maxAbs = Math.max(...monatsSummen.map(Math.abs), 1);
+    const bars = document.getElementById('h-vermoegen-bars');
+    bars.innerHTML = monatsSummen.map((v,i)=>`<div class="bar-col ${i===monatsSummen.length-1?'accent':v>=0?'dim':'dim'}" style="height:${Math.abs(v)/maxAbs*100}%;background:${v<0?'var(--red)':i===monatsSummen.length-1?'var(--accent)':'var(--s3)'}"></div>`).join('');
+
+    // Jahresincome
+    const thisYear = now.getFullYear();
+    const einJahr = mmData.filter(r=>r.jahr===thisYear && r.kategorie.startsWith('Einnahmen - Job - Gehalt')).reduce((s,r)=>s+r.betrag,0);
+    const ausJahr = mmData.filter(r=>r.jahr===thisYear && istAusgabe(r)).reduce((s,r)=>s+Math.abs(r.betrag),0);
+    if (einJahr > 0) vermEl.textContent = fmt(einJahr - ausJahr) + ' €';
+  } else {
+    vermEl.textContent = '— €';
+  }
+
+  // Recent
+  const wrap=document.getElementById('h-recent');
+  const recent=entries.slice(0,5);
+  wrap.innerHTML=recent.length?recent.map(entryHTML).join(''):'<div style="padding:20px 20px;color:var(--muted);font-size:14px">Noch keine Bargeld-Einträge</div>';
+
+  updateCSVInfo();
+}
+
+// ══ RENDER AUSGABEN ══════════════════════════════════
+
+function renderAusgaben(){
+  const now=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+
+  // Monatsverlauf Canvas
+  drawMonthChart();
+
+  // Budget (dynamisches Limit aus 12-Monats-Durchschnitt)
+  const thisMonth=`${now.getFullYear()}-${pad(now.getMonth()+1)}`;
+  const mEntries=entries.filter(e=>e.monat===thisMonth);
+  const bwrap=document.getElementById('budget-list');
+  const FALLBACK_LIMITS = {0:200,1:150,2:100,3:150,4:60,5:80,6:60};
+  bwrap.innerHTML=BUDGET_GROUPS.map((b,i)=>{
+    const spent=mEntries.filter(e=>b.kat.includes(e.kategorie)).reduce((s,e)=>s+e.betrag,0);
+    const avg=calcAvgLimit(b.kat);
+    const limit=avg||FALLBACK_LIMITS[i]||100;
+    const pct=Math.min(100,(spent/limit)*100);
+    const cls=pct>100?'over':pct>80?'warn':'';
+    const src=avg?'⌀ 12 Mon.':'Schätzwert';
+    return `<div class="budget-item">
+      <div class="budget-top">
+        <span class="budget-name">${b.icon} ${b.name}</span>
+        <span class="budget-nums">${fmt(spent)} / ${fmt(limit)} € <span style="color:var(--muted2);font-size:10px">(${src})</span></span>
+      </div>
+      <div class="budget-track"><div class="budget-fill ${cls}" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('');
+
+  // Top Kategorien — aus mmData (aktueller Monat) oder Bargeld-Einträge
+  const katSums={};
+  if (mmData.length > 0) {
+    mmData.filter(r=>r.monat===thisMonth && istAusgabe(r)).forEach(r=>{
+      const k=r.kategorie.split(' - ').pop();
+      katSums[k]=(katSums[k]||0)+Math.abs(r.betrag);
+    });
+  } else {
+    mEntries.filter(e=>!e.kategorie.startsWith('Einnahmen')).forEach(e=>{
+      const k=e.kategorie.split(' - ').pop();
+      katSums[k]=(katSums[k]||0)+e.betrag;
+    });
+  }
+  const sorted=Object.entries(katSums).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const maxVal=sorted[0]?sorted[0][1]:1;
+  const kwrap=document.getElementById('kat-list');
+  kwrap.innerHTML=sorted.length?sorted.map(([k,v])=>`
+    <div class="budget-item">
+      <div class="budget-top"><span class="budget-name">${k}</span><span class="budget-nums">${fmt(v)} €</span></div>
+      <div class="budget-track"><div class="budget-fill" style="width:${(v/maxVal)*100}%"></div></div>
+    </div>`).join(''):'<div style="color:var(--muted);font-size:14px;padding:10px 0">Keine Daten — bitte CSV laden</div>';
+
+  // VJ aus MoneyMoney CSV
+  const thisYear=now.getFullYear();
+  const lastYear=thisYear-1;
+  const ty = mmData.filter(r=>r.jahr===thisYear && istAusgabe(r)).reduce((s,r)=>s+Math.abs(r.betrag),0);
+  const ly = mmData.filter(r=>r.jahr===lastYear && istAusgabe(r)).reduce((s,r)=>s+Math.abs(r.betrag),0);
+  document.getElementById('vj-2026').textContent=ty>0?fmt(ty)+' €':'— €';
+  document.getElementById('vj-2025').textContent=ly>0?fmt(ly)+' €':'— €';
+}
+
+function drawMonthChart(){
+  const canvas=document.getElementById('chart-monat');
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  const W=canvas.offsetWidth||360; canvas.width=W*2; canvas.height=320; ctx.scale(2,2);
+  const w=W; const h=160;
+  const now=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+
+  // Last 6 months — aus MoneyMoney CSV wenn vorhanden
+  const months=[];
+  for(let i=5;i>=0;i--){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    months.push(`${d.getFullYear()}-${pad(d.getMonth()+1)}`);
+  }
+  const vals=months.map(m=>{
+    if (mmData.length > 0) {
+      return mmData.filter(r=>r.monat===m && istAusgabe(r)).reduce((s,r)=>s+Math.abs(r.betrag),0);
+    }
+    return entries.filter(e=>e.monat===m&&!e.kategorie.startsWith('Einnahmen')).reduce((s,e)=>s+e.betrag,0);
+  });
+  const maxV=Math.max(...vals,1);
+
+  ctx.clearRect(0,0,w,h);
+  const pad2=20; const bw=Math.floor((w-pad2*2)/months.length)-8;
+  months.forEach((m,i)=>{
+    const x=pad2+i*((w-pad2*2)/months.length);
+    const bh=Math.max(4,(vals[i]/maxV)*(h-40));
+    const y=h-20-bh;
+    const isLast=i===months.length-1;
+    ctx.fillStyle=isLast?'#c8f054':'#242424';
+    ctx.beginPath(); ctx.roundRect(x+2,y,bw,bh,4); ctx.fill();
+
+    // Label
+    ctx.fillStyle='#555';
+    ctx.font='9px DM Sans';
+    ctx.textAlign='center';
+    const lbl=m.slice(5);
+    ctx.fillText(lbl,x+2+bw/2,h-6);
+
+    if(vals[i]>0){
+      ctx.fillStyle=isLast?'#c8f054':'#666';
+      ctx.font='bold 10px DM Sans';
+      ctx.fillText(fmt(vals[i]),x+2+bw/2,y-4);
+    }
+  });
+}
+
+// ══ RENDER MEHR ══════════════════════════════════════
+
+function renderMehr(){
+  const wrap=document.getElementById('mehr-list');
+  wrap.innerHTML=entries.length?entries.map((e,i)=>`
+    <div class="entry">
+      <div class="entry-dot"></div>
+      <div class="entry-body">
+        <div class="entry-name">${e.empfaenger||e.kategorie.split(' - ').pop()}</div>
+        <div class="entry-meta">${e.datum} · ${e.kategorie.split(' - ').pop()}${e.notiz?' · '+e.notiz:''}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="entry-amt">-${fmt(e.betrag)} €</div>
+        <div onclick="delEntry(${e.id})" style="color:var(--muted2);font-size:18px;cursor:pointer;padding:0 4px">×</div>
+      </div>
+    </div>`).join(''):'<div style="color:var(--muted);font-size:14px;padding:10px 20px">Keine Einträge</div>';
+  document.getElementById('set-count').textContent=entries.length;
+}
+
+function entryHTML(e){
+  return `<div class="entry">
+    <div class="entry-dot"></div>
+    <div class="entry-body">
+      <div class="entry-name">${e.empfaenger||e.kategorie.split(' - ').pop()}</div>
+      <div class="entry-meta">${e.datum} · ${e.kategorie.split(' - ').pop()}${e.notiz?' · '+e.notiz:''}</div>
+    </div>
+    <div class="entry-amt">-${fmt(e.betrag)} €</div>
+  </div>`;
+}
+
+// ══ UTILS ══════════════════════════════════════════════
+
+function fmt(n){return n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});}
+
+function delEntry(id){
+  if(!confirm('Löschen?'))return;
+  entries=entries.filter(e=>e.id!==id);
+  localStorage.setItem('mm_entries',JSON.stringify(entries));
+  renderMehr();
+}
+
+function clearAll(){
+  if(!confirm('Alle Einträge wirklich löschen?'))return;
+  entries=[];
+  localStorage.setItem('mm_entries','[]');
+  renderMehr(); renderHome();
+  showToast('Alle Einträge gelöscht');
+}
+
+function exportCSV(){
+  if(!entries.length){showToast('Keine Einträge');return;}
+  const hdr='Datum;Wertstellung;Kategorie;Name;Verwendungszweck;Konto;Bank;Betrag;Währung';
+  const rows=entries.map(e=>[
+    e.datum,e.datum,e.kategorie,e.empfaenger||'',e.notiz||'','','',
+    '-'+e.betrag.toFixed(2).replace('.',','),'EUR'
+  ].join(';'));
+  const blob=new Blob(['\uFEFF'+hdr+'\n'+rows.join('\n')],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const now=new Date(); const pad=n=>String(n).padStart(2,'0');
+  a.href=url; a.download=`Bargeld_${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+  showToast('CSV exportiert');
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg;
+  t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+// Init
+renderHome();
+</script>
+</body>
+</html>
