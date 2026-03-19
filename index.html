@@ -26,9 +26,25 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .tab-label{font-size:10px;font-weight:500;color:var(--muted);letter-spacing:.03em}
 .tab.active .tab-label{color:var(--accent)}
 .tab.active .tab-icon{filter:drop-shadow(0 0 6px rgba(200,240,84,.5))}
-/* FAB */
-.fab{position:fixed;bottom:calc(var(--safe-b)+62px);left:50%;transform:translateX(-50%);z-index:101;width:64px;height:64px;border-radius:50%;background:var(--accent);border:none;font-size:32px;color:#111;box-shadow:0 4px 24px rgba(200,240,84,.35);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s}
-.fab:active{transform:translateX(-50%) scale(.93)}
+/* FAB — schwebt über Tab-Bar, schneidet sie leicht */
+.fab{
+  position:fixed;
+  bottom:calc(var(--safe-b) + 28px);
+  left:50%;
+  transform:translateX(-50%);
+  z-index:102;
+  width:58px;height:58px;
+  border-radius:50%;
+  background:var(--accent);
+  border:3px solid var(--bg);
+  font-size:30px;color:#111;
+  box-shadow:0 4px 20px rgba(200,240,84,.4);
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  touch-action:manipulation;
+  transition:transform .15s;
+}
+.fab:active{transform:translateX(-50%) scale(.92)}
 /* TYPOGRAPHY */
 .serif{font-family:'Fraunces',serif}
 h1.page-title{font-family:'Fraunces',serif;font-size:30px;font-weight:300;letter-spacing:-.5px;padding:0 20px 20px}
@@ -465,7 +481,9 @@ canvas{width:100%;border-radius:12px;background:var(--s1);display:block}
   <div class="tab" id="tab-vermoegen" ontouchstart="" onclick="showTab('vermoegen')"><div class="tab-icon">📈</div><div class="tab-label">Vermögen</div></div>
   <div class="tab" id="tab-mehr" ontouchstart="" onclick="showTab('mehr')"><div class="tab-icon">⚙️</div><div class="tab-label">Mehr</div></div>
 </div>
-<button class="fab" onclick="openNewEntry()">+</button>
+
+
+<button class="fab" ontouchstart="" onclick="openNewEntry()">+</button>
 
 <!-- SHEET: NEUE AUSGABE -->
 <div class="overlay" id="overlay-new" onclick="closeNew()" ontouchstart="">
